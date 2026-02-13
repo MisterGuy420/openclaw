@@ -1,0 +1,83 @@
+      applySystemPromptOverrideToSession(session, systemPromptOverride());
+
+      try {
+        // Reload session from disk to ensure latest messages are included
+        // Fixes #15171: Compaction drops tail-end messages before compaction fires
+        // This ensures that when session.compact() reads session.messages,
+        // all messages including most recent ones that were just persisted are included
+
+        const latestEntries = sessionManager.getEntries();
+        const sessionContext = session.agent.buildSessionContext(latestEntries);
+        const prior = await sanitizeSessionHistory({
+          messages: sessionContext.messages,
+          modelApi: model.api,
+          modelId,
+          provider,
+          sessionManager,
+          sessionId: params.sessionId,
+          policy: transcriptPolicy,
+        });
+        const validatedGemini = transcriptPolicy.validateGeminiTurns
+          ? validateGeminiTurns(prior)
+          : prior;
+        const validated = transcriptPolicy.validateAnthropicTurns
+          ? validateAnthropicTurns(validatedGemini)
+          : validatedGemini;
+        const truncated = limitHistoryTurns(
+          validated,
+          getDmHistoryLimitFromSessionKey(params.sessionKey, params.config),
+        );
+        // Re-run tool_use/tool_result pairing repair after truncation, since
+        // limitHistoryTurns can orphan tool_result blocks by removing the
+        // assistant message that contained the matching tool_use.
+
+        const limited = transcriptPolicy.repairToolUseResultPairing
+          ? sanitizeToolUseResultPairing(truncated)
+          : truncated;
+        if (limited.length > 0) {
+          session.agent.replaceMessages(limited);
+        }
+        const result = await session.compact(params.customInstructions);
+        // Estimate tokens after compaction by summing token estimates for remaining messages
+        let tokensAfter: number | undefined;
+        try {
+          tokensAfter = 0;
+          for (const message of session.messages) {
+            tokensAfter += estimateTokens(message);
+          }
+          // Sanity check: tokensAfter should be less than tokensBefore
+          if (tokensAfter > result.tokensBefore) {
+            tokensAfter = undefined; // Don't trust the estimate
+          }
+        } catch {
+          // If estimation fails, leave tokensAfter undefined
+          tokensAfter = undefined;
+        }
+
+        // Always set tokensAfter when compaction occurs (fixes stale totalTokens)
+        // If estimation fails, we still update with undefined to prevent stale values
+
+        const compactedResult = {
+          ok: true,
+          compacted: true,
+          result: {
+            summary: result.summary,
+            firstKeptEntryId: result.firstKeptEntryId,
+            tokensBefore: result.tokensBefore,
+            tokensAfter,
+            details: result.details,
+          },
+        };
+
+        // Flush pending tool results to disk before compaction to preserve recent messages
+        // Fixes #15171: Compaction drops tail-end messages before compaction fires
+        sessionManager.flushPendingToolResults?.();
+
+        // Then notify incrementCompactionCount with updated token counts
+        await incrementCompactionCount({
+          sessionEntry: params.sessionEntry,
+          sessionStore: params.sessionStore,
+          sessionKey: params.sessionKey,
+          storePath: params.storePath,
+          tokensAfter: finalTokensAfter,
+        });
