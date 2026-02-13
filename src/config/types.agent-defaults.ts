@@ -5,6 +5,7 @@ import type {
   HumanDelayConfig,
   TypingMode,
 } from "./types.base.js";
+import type { DmScope } from "./types.base.js";
 import type {
   SandboxBrowserSettings,
   SandboxDockerSettings,
@@ -91,6 +92,11 @@ export type CliBackendConfig = {
   imageMode?: "repeat" | "list";
   /** Serialize runs for this CLI. */
   serialize?: boolean;
+};
+
+export type AgentDefaultsSessionConfig = {
+  /** DM session scoping (default: "main"). */
+  dmScope?: DmScope;
 };
 
 export type AgentDefaultsConfig = {
@@ -211,6 +217,8 @@ export type AgentDefaultsConfig = {
     /** Default thinking level for spawned sub-agents (e.g. "off", "low", "medium", "high"). */
     thinking?: string;
   };
+  /** Session-scoped configuration (DM scoping per agent). */
+  session?: AgentDefaultsSessionConfig;
   /** Optional sandbox settings for non-main sessions. */
   sandbox?: {
     /** Enable sandboxing for sessions. */

@@ -12,6 +12,7 @@ import {
   CliBackendSchema,
   HumanDelaySchema,
 } from "./zod-schema.core.js";
+import { SessionSchema } from "./zod-schema.session.js";
 
 export const AgentDefaultsSchema = z
   .object({
@@ -136,6 +137,7 @@ export const AgentDefaultsSchema = z
       ])
       .optional(),
     heartbeat: HeartbeatSchema,
+    session: SessionSchema.optional(),
     maxConcurrent: z.number().int().positive().optional(),
     subagents: z
       .object({

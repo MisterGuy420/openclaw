@@ -645,7 +645,9 @@ const FIELD_HELP: Record<string, string> = {
   "commands.ownerAllowFrom":
     "Explicit owner allowlist for owner-only tools/commands. Use channel-native IDs (optionally prefixed like \"whatsapp:+15551234567\"). '*' is ignored.",
   "session.dmScope":
-    'DM session scoping: "main" keeps continuity; "per-peer", "per-channel-peer", or "per-account-channel-peer" isolates DM history (recommended for shared inboxes/multi-account).',
+    'DM session scoping: "main" keeps continuity; "per-peer", "per-channel-peer", or "per-account-channel-peer" isolates DM history (recommended for shared inboxes/multi-account). Can be set at top level (session.dmScope) or per agent (agents.defaults.session.dmScope).',
+  "session.identityLinks":
+    "Map canonical identities to provider-prefixd peer IDs for DM session linking (example: telegram:123456).",
   "session.identityLinks":
     "Map canonical identities to provider-prefixed peer IDs for DM session linking (example: telegram:123456).",
   "channels.telegram.configWrites":

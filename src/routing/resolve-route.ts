@@ -200,7 +200,8 @@ export function resolveAgentRoute(input: ResolveAgentRouteInput): ResolvedAgentR
     return matchesAccountId(binding.match?.accountId, accountId);
   });
 
-  const dmScope = input.cfg.session?.dmScope ?? "main";
+  const dmScope =
+    input.cfg.agents?.defaults?.session?.dmScope ?? input.cfg.session?.dmScope ?? "main";
   const identityLinks = input.cfg.session?.identityLinks;
 
   const choose = (agentId: string, matchedBy: ResolvedAgentRoute["matchedBy"]) => {

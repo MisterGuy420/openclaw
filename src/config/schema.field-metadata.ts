@@ -632,7 +632,9 @@ export const FIELD_HELP: Record<string, string> = {
   "commands.allowFrom":
     'Per-provider allowlist restricting who can use slash commands. If set, overrides the channel\'s allowFrom for command authorization. Use \'*\' key for global default; provider-specific keys (e.g. \'discord\') override the global. Example: { "*": ["user1"], "discord": ["user:123"] }.',
   "session.dmScope":
-    'DM session scoping: "main" keeps continuity; "per-peer", "per-channel-peer", or "per-account-channel-peer" isolates DM history (recommended for shared inboxes/multi-account).',
+    'DM session scoping: "main" keeps continuity; "per-peer", "per-channel-peer", or "per-account-channel-peer" isolates DM history (recommended for shared inboxes/multi-account). Can be set at top level (session.dmScope) or per agent (agents.defaults.session.dmScope).',
+  "session.identityLinks":
+    "Map canonical identities to provider-prefixed peer IDs for DM session linking (example: telegram:123456).",
   "session.identityLinks":
     "Map canonical identities to provider-prefixed peer IDs for DM session linking (example: telegram:123456).",
   "channels.telegram.configWrites":
