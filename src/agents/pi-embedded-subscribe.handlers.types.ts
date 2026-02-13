@@ -107,6 +107,11 @@ export type EmbeddedPiSubscribeContext = {
   incrementCompactionCount: () => void;
   getUsageTotals: () => NormalizedUsage | undefined;
   getCompactionCount: () => number;
+
+  // Messaging tool send ordering
+  trackPendingMessagingSend: (toolCallId: string) => Promise<void>;
+  resolvePendingMessagingSend: (toolCallId: string) => void;
+  waitForMessagingToolSends: () => Promise<void>;
 };
 
 export type EmbeddedPiSubscribeEvent =

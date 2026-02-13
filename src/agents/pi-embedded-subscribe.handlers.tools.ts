@@ -123,6 +123,8 @@ export async function handleToolExecutionStart(
     const argsRecord = args && typeof args === "object" ? (args as Record<string, unknown>) : {};
     const isMessagingSend = isMessagingToolSendAction(toolName, argsRecord);
     if (isMessagingSend) {
+      // Track this as a pending send for ordering guarantees
+      void ctx.trackPendingMessagingSend(toolCallId);
       const sendTarget = extractMessagingToolSend(toolName, argsRecord);
       if (sendTarget) {
         ctx.state.pendingMessagingTargets.set(toolCallId, sendTarget);
@@ -208,6 +210,8 @@ export async function handleToolExecutionEnd(
       ctx.log.debug(`Committed messaging text: tool=${toolName} len=${pendingText.length}`);
       ctx.trimMessagingToolSent();
     }
+    // Resolve the pending send promise (whether success or error)
+    ctx.resolvePendingMessagingSend(toolCallId);
   }
   if (pendingTarget) {
     ctx.state.pendingMessagingTargets.delete(toolCallId);

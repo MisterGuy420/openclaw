@@ -70,6 +70,7 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     messagingToolSentTargets: [],
     pendingMessagingTexts: new Map(),
     pendingMessagingTargets: new Map(),
+    pendingMessagingResolvers: new Map(),
   };
   const usageTotals = {
     input: 0,
@@ -89,6 +90,32 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
   const messagingToolSentTargets = state.messagingToolSentTargets;
   const pendingMessagingTexts = state.pendingMessagingTexts;
   const pendingMessagingTargets = state.pendingMessagingTargets;
+  const pendingMessagingResolvers = state.pendingMessagingResolvers;
+
+  // Track pending messaging tool sends for ordering guarantees
+  const trackPendingMessagingSend = (toolCallId: string): Promise<void> => {
+    return new Promise((resolve) => {
+      pendingMessagingResolvers.set(toolCallId, resolve);
+    });
+  };
+
+  const resolvePendingMessagingSend = (toolCallId: string): void => {
+    const resolver = pendingMessagingResolvers.get(toolCallId);
+    if (resolver) {
+      resolver();
+      pendingMessagingResolvers.delete(toolCallId);
+    }
+  };
+
+  const waitForMessagingToolSends = async (): Promise<void> => {
+    if (pendingMessagingResolvers.size === 0) {
+      return;
+    }
+    const resolvers = Array.from(pendingMessagingResolvers.values());
+    pendingMessagingResolvers.clear();
+    await Promise.all(resolvers.map((resolve) => resolve()));
+  };
+
   const replyDirectiveAccumulator = createStreamingDirectiveAccumulator();
   const partialReplyDirectiveAccumulator = createStreamingDirectiveAccumulator();
 
@@ -566,6 +593,7 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     messagingToolSentTargets.length = 0;
     pendingMessagingTexts.clear();
     pendingMessagingTargets.clear();
+    pendingMessagingResolvers.clear();
     resetAssistantMessageState(0);
   };
 
@@ -598,6 +626,9 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     incrementCompactionCount,
     getUsageTotals,
     getCompactionCount: () => compactionCount,
+    trackPendingMessagingSend,
+    resolvePendingMessagingSend,
+    waitForMessagingToolSends,
   };
 
   const unsubscribe = params.session.subscribe(createEmbeddedPiSessionEventHandler(ctx));
@@ -616,6 +647,7 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     getLastToolError: () => (state.lastToolError ? { ...state.lastToolError } : undefined),
     getUsageTotals,
     getCompactionCount: () => compactionCount,
+    waitForMessagingToolSends,
     waitForCompactionRetry: () => {
       if (state.compactionInFlight || state.pendingCompactionRetry > 0) {
         ensureCompactionPromise();

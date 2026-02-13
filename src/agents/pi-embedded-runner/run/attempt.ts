@@ -659,6 +659,7 @@ export async function runEmbeddedAttempt(
         toolMetas,
         unsubscribe,
         waitForCompactionRetry,
+        waitForMessagingToolSends,
         getMessagingToolSentTexts,
         getMessagingToolSentTargets,
         didSendViaMessagingTool,
@@ -905,6 +906,10 @@ export async function runEmbeddedAttempt(
         .slice()
         .toReversed()
         .find((m) => m.role === "assistant");
+
+      // Wait for any pending messaging tool sends to complete before returning.
+      // This ensures message ordering: tool sends complete before final replies are dispatched.
+      await waitForMessagingToolSends();
 
       const toolMetasNormalized = toolMetas
         .filter(
