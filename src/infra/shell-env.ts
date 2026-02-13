@@ -8,7 +8,13 @@ let cachedShellPath: string | null | undefined;
 
 function resolveShell(env: NodeJS.ProcessEnv): string {
   const shell = env.SHELL?.trim();
-  return shell && shell.length > 0 ? shell : "/bin/sh";
+  if (shell && shell.length > 0) {
+    return shell;
+  }
+  if (process.platform === "win32") {
+    return env.COMSPEC || "cmd.exe";
+  }
+  return "/bin/sh";
 }
 
 function parseShellEnv(stdout: Buffer): Map<string, string> {
