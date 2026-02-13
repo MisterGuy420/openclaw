@@ -140,6 +140,37 @@ function createMergePatch(base: unknown, target: unknown): unknown {
   return patch;
 }
 
+function preserveUnknownFields(
+  original: unknown,
+  validated: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!isPlainObject(original) || !isPlainObject(validated)) {
+    return validated;
+  }
+
+  const result = { ...validated };
+  const validatedKeys = new Set(Object.keys(validated));
+
+  for (const [key, value] of Object.entries(original)) {
+    if (validatedKeys.has(key)) {
+      // Key exists in validated config, recurse if both are objects
+      const validatedValue = validated[key];
+      const originalValue = original[key];
+      if (isPlainObject(validatedValue) && isPlainObject(originalValue)) {
+        result[key] = preserveUnknownFields(originalValue, validatedValue);
+      }
+      continue;
+    }
+
+    // Key doesn't exist in validated config, preserve it from original
+    if (value !== undefined && value !== null) {
+      result[key] = value;
+    }
+  }
+
+  return result;
+}
+
 async function rotateConfigBackups(configPath: string, ioFs: typeof fs.promises): Promise<void> {
   if (CONFIG_BACKUP_COUNT <= 1) {
     return;
@@ -569,11 +600,19 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
         .join("\n");
       deps.logger.warn(`Config warnings:\n${details}`);
     }
+
+    // Preserve unknown fields from the original config to avoid losing user-added
+    // fields that may not be in the current schema (e.g., fields from future
+    // OpenClaw versions or custom extensions).
+    const configToWrite = persistCandidate
+      ? preserveUnknownFields(persistCandidate, validated.config as Record<string, unknown>)
+      : validated.config;
+
     const dir = path.dirname(configPath);
     await deps.fs.promises.mkdir(dir, { recursive: true, mode: 0o700 });
     // Do NOT apply runtime defaults when writing — user config should only contain
     // explicitly set values. Runtime defaults are applied when loading (issue #6070).
-    const json = JSON.stringify(stampConfigVersion(validated.config), null, 2)
+    const json = JSON.stringify(stampConfigVersion(configToWrite as OpenClawConfig), null, 2)
       .trimEnd()
       .concat("\n");
 
