@@ -1,78 +1,16 @@
-const originalCompact = `const result = await session.compact(params.customInstructions);
-        // Flush pending tool results to disk before compaction to preserve recent messages
-        // Fixes #15171: Compaction drops tail-end messages before compaction fires
-        sessionManager.flushPendingToolResults?.();/a
+// Reload session from disk to ensure latest messages are included
+// Fixes #15171: Compaction drops tail-end messages before compaction fires
+// This ensures that when session.compact() reads session.messages,
+// all messages including most recent ones that were just persisted are included
 
-        // Then notify incrementCompactionCount with updated token counts
-        const result = await session.compact(params.customInstructions);/g
-        // Calculate tokens after compaction by summing token estimates for remaining messages
-        let tokensAfter: number | undefined;
-        try {
-          tokensAfter = 0;
-          for (const message of session.messages) {
-            tokensAfter += estimateTokens(message);
-          }
-          // Sanity check: tokensAfter should be less than tokensBefore
-          if (tokensAfter > result.tokensBefore) {
-            tokensAfter = undefined; // Don't trust the estimate
-          }
-        } catch {
-          // If estimation fails, leave tokensAfter undefined
-          tokensAfter = undefined;
-        }
-        return {
-          ok: true,
-          compacted: true,
-          result: {
-            summary: result.summary,
-            firstKeptEntryId: result.firstKeptEntryId,
-            tokensBefore: result.tokensBefore,
-            tokensAfter,
-            details: result.details,
-          },
-        };
-      } finally {
-        sessionManager.flushPendingToolResults?.();
-        session.dispose();
-      }
-    } finally {
-      restoreSkillEnv?.();
-      process.chdir(prevCwd);
-    }
-  `;
-
-const newCompact = `const result = await session.compact(params.customInstructions);
-        // Flush pending tool results to disk before compaction to preserve recent messages
-        // Fixes #15171: Compaction drops tail-end messages before compaction fires
-        sessionManager.flushPendingToolResults?.();/a
-
-        // Then notify incrementCompactionCount with updated token counts
-        const result = await session.compact(params.customInstructions);/g
-        // Calculate tokens after compaction by summing token estimates for remaining messages
-        let tokensAfter: number | undefined;
-        try {
-          tokensAfter = 0;
-          for (const message of session.messages) {
-            tokensAfter += estimateTokens(message);
-          }
-          // Sanity check: tokensAfter should be less than tokensBefore
-          if (tokensAfter > result.tokensBefore) {
-            tokensAfter = undefined; // Don't trust the estimate
-          }
-        } catch {
-          // If estimation fails, leave tokensAfter undefined
-          tokensAfter = undefined;
-        }
-
-        // Flush pending tool results to disk before compaction to preserve recent messages
-        // Fixes #15171: Compaction drops tail-end messages before compaction fires
-        sessionManager.flushPendingToolResults?.();
-
-        // Then notify incrementCompactionCount with updated token counts
-        const result = await session.compact(params.customInstructions);
-        // Flush pending tool results to disk before compaction to preserve recent messages
-        // Fixes #15171: Compaction drops tail-end messages before compaction fires
-        sessionManager.flushPendingToolResults?.();/a
-
-        // Then notify incrementCompactionCount with updated token counts
-        const result = await session.compact(params.customInstructions);/g
+const latestEntries = sessionManager.getEntries();
+const sessionContext = session.agent.buildSessionContext(latestEntries);
+const prior = await sanitizeSessionHistory({
+  messages: sessionContext.messages,
+  modelApi: model.api,
+  modelId,
+  provider,
+  sessionManager,
+  sessionId: params.sessionId,
+  policy: transcriptPolicy,
+});
