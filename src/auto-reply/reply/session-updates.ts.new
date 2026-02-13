@@ -1,0 +1,15 @@
+      // If tokensAfter is provided, update to cached token counts to reflect post-compaction state
+        if (tokensAfter != null && tokensAfter > 0) {
+          updates.totalTokens = tokensAfter;
+          // Clear input/output breakdown since we only have to total estimate after compaction
+          updates.inputTokens = undefined;
+          updates.outputTokens = undefined;
+        }
+      // Fix for #15101: When estimation fails, reset totalTokens to 0 to prevent stale values
+        // This prevents stale pre-compaction values from triggering false memory flushes
+        // Fixes #15006 reference which didn't handle stale values correctly
+        else if (tokensAfter === undefined) {
+          updates.totalTokens = 0;
+          updates.inputTokens = 0;
+          updates.outputTokens = 0;
+        }
