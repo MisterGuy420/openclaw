@@ -121,7 +121,10 @@ function pickFirstExistingAgentId(cfg: OpenClawConfig, agentId: string): string 
   if (match?.id?.trim()) {
     return sanitizeAgentId(match.id.trim());
   }
-  return sanitizeAgentId(resolveDefaultAgentId(cfg));
+  // Return the provided agentId even if not in agents.list
+  // This allows bindings to reference agents that may be created dynamically
+  // or configured through other means (e.g., skills, plugins)
+  return sanitizeAgentId(trimmed);
 }
 
 function matchesChannel(
