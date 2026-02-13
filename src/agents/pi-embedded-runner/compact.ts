@@ -415,6 +415,9 @@ export async function compactEmbeddedPiSessionDirect(
       applySystemPromptOverrideToSession(session, systemPromptOverride());
 
       try {
+        // Reload session from disk to ensure latest messages are included
+        // Fixes #15171: Compaction drops tail-end messages before compaction fires
+        const latestEntries = sessionManager.getEntries();
         const prior = await sanitizeSessionHistory({
           messages: session.messages,
           modelApi: model.api,
