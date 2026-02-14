@@ -435,7 +435,10 @@ export async function preflightDiscordMessage(
         hasAnyMention,
         isExplicitlyMentioned: explicitlyMentioned,
         canResolveExplicit: Boolean(botId),
-        acceptAnyMentionAsExplicit: isGuildMessage,
+        acceptAnyMentionAsExplicit:
+          isGuildMessage &&
+          !explicitlyMentioned &&
+          (message.mentionedEveryone || (message.mentionedRoles?.length ?? 0) > 0),
       },
       transcript: preflightTranscript,
     });
