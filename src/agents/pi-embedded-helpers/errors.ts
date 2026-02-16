@@ -598,6 +598,8 @@ const ERROR_PATTERNS = {
     "timed out",
     "deadline exceeded",
     "context deadline exceeded",
+    "abort",
+    "stop reason: abort",
     /without sending (?:any )?chunks?/i,
   ],
   billing: [
