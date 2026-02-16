@@ -214,11 +214,9 @@ export const handleUsageCommand: CommandHandler = async (params, allowTextComman
   const next = requested ?? (current === "off" ? "tokens" : current === "tokens" ? "full" : "off");
 
   if (params.sessionEntry && params.sessionStore && params.sessionKey) {
-    if (next === "off") {
-      delete params.sessionEntry.responseUsage;
-    } else {
-      params.sessionEntry.responseUsage = next;
-    }
+    // Explicitly set to "off" instead of deleting the key, so the fallback chain
+    // in session.ts preserves the explicit opt-out rather than re-applying the default.
+    params.sessionEntry.responseUsage = next;
     params.sessionEntry.updatedAt = Date.now();
     params.sessionStore[params.sessionKey] = params.sessionEntry;
     if (params.storePath) {
