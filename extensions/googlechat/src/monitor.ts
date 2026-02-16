@@ -378,6 +378,9 @@ function resolveBotDisplayName(params: {
     return accountName.trim();
   }
   const agent = config.agents?.list?.find((a) => a.id === agentId);
+  if (agent?.identity?.name?.trim()) {
+    return agent.identity.name.trim();
+  }
   if (agent?.name?.trim()) {
     return agent.name.trim();
   }
