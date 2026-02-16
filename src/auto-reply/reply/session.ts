@@ -138,6 +138,7 @@ export async function initSessionState(params: {
   let persistedVerbose: string | undefined;
   let persistedReasoning: string | undefined;
   let persistedTtsAuto: TtsAutoMode | undefined;
+  let persistedResponseUsage: SessionEntry["responseUsage"] | undefined;
   let persistedModelOverride: string | undefined;
   let persistedProviderOverride: string | undefined;
 
@@ -250,6 +251,7 @@ export async function initSessionState(params: {
       persistedVerbose = entry.verboseLevel;
       persistedReasoning = entry.reasoningLevel;
       persistedTtsAuto = entry.ttsAuto;
+      persistedResponseUsage = entry.responseUsage;
     }
   }
 
@@ -271,6 +273,17 @@ export async function initSessionState(params: {
   const lastTo = deliveryFields.lastTo ?? lastToRaw;
   const lastAccountId = deliveryFields.lastAccountId ?? lastAccountIdRaw;
   const lastThreadId = deliveryFields.lastThreadId ?? lastThreadIdRaw;
+
+  const defaultResponseUsage: SessionEntry["responseUsage"] | undefined = (() => {
+    const key = String(lastChannel ?? ctx.Surface ?? ctx.Provider ?? "")
+      .trim()
+      .toLowerCase();
+    if (key === "telegram" || key === "matrix") {
+      return "tokens";
+    }
+    return undefined;
+  })();
+
   sessionEntry = {
     ...baseEntry,
     sessionId,
@@ -282,7 +295,7 @@ export async function initSessionState(params: {
     verboseLevel: persistedVerbose ?? baseEntry?.verboseLevel,
     reasoningLevel: persistedReasoning ?? baseEntry?.reasoningLevel,
     ttsAuto: persistedTtsAuto ?? baseEntry?.ttsAuto,
-    responseUsage: baseEntry?.responseUsage,
+    responseUsage: persistedResponseUsage ?? baseEntry?.responseUsage ?? defaultResponseUsage,
     modelOverride: persistedModelOverride ?? baseEntry?.modelOverride,
     providerOverride: persistedProviderOverride ?? baseEntry?.providerOverride,
     sendPolicy: baseEntry?.sendPolicy,
