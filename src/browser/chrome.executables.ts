@@ -251,21 +251,17 @@ function detectDefaultBrowserBundleIdMac(): string | null {
 }
 
 function detectDefaultChromiumExecutableLinux(): BrowserExecutable | null {
-  // Try WSL2 Windows browser detection first
-  const wslBrowser = detectWsl2WindowsBrowser();
-  if (wslBrowser) {
-    return wslBrowser;
-  }
-
   const desktopId =
     execText("xdg-settings", ["get", "default-web-browser"]) ||
     execText("xdg-mime", ["query", "default", "x-scheme-handler/http"]);
   if (!desktopId) {
-    return null;
+    // Fallback: try WSL2 Windows browser detection
+    return detectWsl2WindowsBrowser();
   }
   const trimmed = desktopId.trim();
   if (!CHROMIUM_DESKTOP_IDS.has(trimmed)) {
-    return null;
+    // Fallback: try WSL2 Windows browser detection
+    return detectWsl2WindowsBrowser();
   }
   const desktopPath = findDesktopFilePath(trimmed);
   if (!desktopPath) {
@@ -285,7 +281,8 @@ function detectDefaultChromiumExecutableLinux(): BrowserExecutable | null {
   }
   const exeName = path.posix.basename(resolved).toLowerCase();
   if (!CHROMIUM_EXE_NAMES.has(exeName)) {
-    return null;
+    // Fallback: try WSL2 Windows browser detection
+    return detectWsl2WindowsBrowser();
   }
   return { kind: inferKindFromExecutableName(exeName), path: resolved };
 }
