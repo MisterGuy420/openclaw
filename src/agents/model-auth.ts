@@ -1,8 +1,8 @@
-import path from "node:path";
 import { type Api, getEnvApiKey, type Model } from "@mariozechner/pi-ai";
-import { formatCliCommand } from "../cli/command-format.js";
+import path from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
 import type { ModelProviderAuthMode, ModelProviderConfig } from "../config/types.js";
+import { formatCliCommand } from "../cli/command-format.js";
 import { getShellEnvAppliedKeys } from "../infra/shell-env.js";
 import {
   normalizeOptionalSecretInput,
@@ -53,6 +53,14 @@ export function getCustomProviderApiKey(
 ): string | undefined {
   const entry = resolveProviderConfig(cfg, provider);
   return normalizeOptionalSecretInput(entry?.apiKey);
+}
+
+export function getCustomProviderApiType(
+  cfg: OpenClawConfig | undefined,
+  provider: string,
+): ModelProviderConfig["api"] | undefined {
+  const entry = resolveProviderConfig(cfg, provider);
+  return entry?.api;
 }
 
 function resolveProviderAuthOverride(
@@ -223,6 +231,13 @@ export async function resolveApiKeyForProvider(params: {
 
   const authStorePath = resolveAuthStorePathForDisplay(params.agentDir);
   const resolvedAgentDir = path.dirname(authStorePath);
+
+  // For openai-completions API (e.g., Ollama, vLLM), API key is optional
+  const apiType = getCustomProviderApiType(cfg, provider);
+  if (apiType === "openai-completions") {
+    return { apiKey: undefined, source: "none", mode: "api-key" };
+  }
+
   throw new Error(
     [
       `No API key found for provider "${provider}".`,
