@@ -293,7 +293,13 @@ function isWsl2(): boolean {
     return false;
   }
   // Check /proc/version for "Microsoft" or "WSL2"
-  const version = execText("cat", ["/proc/version"], 500);
+  const version = (() => {
+    try {
+      return fs.readFileSync("/proc/version", "utf8").trim();
+    } catch {
+      return null;
+    }
+  })();
   if (!version) {
     return false;
   }
